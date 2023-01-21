@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+
+  app:
+    build:
+      context: node
+    command: bash -c "node index.js"
+    container_name: app
+    restart: always
+    networks:
+      - node_network
+    volumes:
+      - ./node:/usr/src/app
+      - /usr/src/app/node_modules
+    tty: true
+    ports:
+      - "3000:3000"
+    depends_on: 
+       - db
+
+  db:
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0
+    container_name: db
+    restart: always
+    tty: true
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./node/mysqlinitialdatabase/initdatabase.sql:/docker-entrypoint-initdb.d/initdatabase.sql
+    environment:
+      - MYSQL_DATABASE=nodedb
+      - MYSQL_ROOT_PASSWORD=root
+    networks:
+      - node_network
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    image: tiagofalcon/nginx
+    container_name: nginx
+    restart: always
+    networks: 
+      - node_network
+    ports:
+      - "8080:80"
+    depends_on: 
+       - db
+       - app
+
+networks:
+  node_network:
+    driver: bridge
